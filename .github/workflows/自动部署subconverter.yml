@@ -172,18 +172,15 @@ jobs:
 
     - name: Login to Cloud Foundry
       run: |
-        # 1. 首次登录
+        # 1. 首次登录（SAP 会根据该区域自动锁定默认唯一的 org 和 space）
         cf login -a ${{ env.CF_API }} -u "${{ secrets.EMAIL }}" -p "${{ secrets.PASSWORD }}"
         
-        # 2. 精准抓取系统锁定的 org 和 space 名称
+        # 2. 完美的动态名称抓取逻辑，提取系统自动锁定的目标（解决上一轮 name 报错的核心改法）
         ORG=$(cf target | grep "org:" | awk '{print $2}')
         SPACE=$(cf target | grep "space:" | awk '{print $2}')
         
-        # 3. 安全校验机制
         if [ -z "$ORG" ] || [ -z "$SPACE" ]; then
           echo "❌ 提取失败，当前环境未自动锁定 org 或 space，请检查账号状态或区域。"
-          echo "--- cf target 原始输出 ---"
-          cf target
           exit 1
         fi
         
@@ -195,7 +192,9 @@ jobs:
 
     - name: Deploy application
       run: |
-        # 修复点：--health-check-type 改回规范的 port，超时参数修正为标准支持的 --app-start-timeout 180
+        # 参考修正点：按照你提供文档的标准语法：
+        # -u 后面只能是单词，我们将类型定为 port 探测
+        # 超时参数采用你输出文档支持的 --app-start-timeout 180，彻底修复上轮的 Incorrect Usage 错误
         if cf push ${{ env.APP_NAME }} \
            --docker-image ${{ env.DOCKER_IMAGE }} \
            -m ${{ env.MEMORY }} \
@@ -204,22 +203,40 @@ jobs:
            --app-start-timeout 180; then
           echo "✅ Deployment successful"
         else
-          cf delete ${{ env.APP_NAME }} -f -r
-          echo "❌ 部署失败，已清理残留。请检查资源配额或于每日 8:20-9:00 重试。"
+          # 参考 Firefox 改法：清理残留使用更为精简安全的 cf delete -f 参数
+          cf delete ${{ env.APP_NAME }} -f
+          echo "伙计,没资源了,部署失败,请明天早上8:10至9:00再尝试部署,已清理失败部署残留"
           exit 1
         fi
         
-    - name: Configure and verify
+    - name: Set environment variables and restart app
       run: |
-        # 注入亚洲/上海时区
+        # 注入亚洲/上海时区，确保 Subconverter 解析具有过期属性的节点时对齐
         cf set-env ${{ env.APP_NAME }} TZ "Asia/Shanghai"
+        
+        # 深度参考：从 Firefox 迁移过来的高级扩展功能：支持在库里放一个 .env 文件批量加载自定义配置
+        if [ -f .env ]; then
+          while IFS= read -r line; do
+            if [[ ! "$line" =~ ^# ]] && [[ -n "$line" ]]; then
+              IFS='=' read -r key value <<< "$line"
+              cf set-env ${{ env.APP_NAME }} "$key" "$value"
+            fi
+          done < .env
+        fi
+        
+        sleep 3
+        # 使用 restage 重新使所有环境参数和时区生效
         cf restage ${{ env.APP_NAME }}
         
+    - name: Verify deployment
+      run: |
+        # 验证应用运行状态是否转为 started
         STATUS=$(cf app ${{ env.APP_NAME }} | grep "requested state:" | awk '{print $3}')
         if [ "$STATUS" = "started" ]; then
           echo "✅ SubConverter 启动成功"
         else
           echo "❌ 应用启动失败，当前状态: $STATUS"
+          echo "查看应用日志:"
           cf logs ${{ env.APP_NAME }} --recent
           exit 1
         fi
@@ -235,8 +252,8 @@ jobs:
         ROUTE=$(cf app ${{ env.APP_NAME }} | grep "routes:" | awk '{print $2}')
         if [ -n "$ROUTE" ]; then
           echo "🔗 SubConverter 地址: https://$ROUTE"
-          echo "🔍 版本检查: https://$ROUTE/version"
-          echo "📋 订阅转换示例: https://$ROUTE/sub?target=clash&url=你的订阅链接"
+          echo "🔍 版本检查测试: https://$ROUTE/version"
+          echo "📋 转换命令示例: https://$ROUTE/sub?target=clash&url=你的配置链接"
         else
           echo "⚠️ 未找到应用路由，请检查部署状态。"
         fi
