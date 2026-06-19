@@ -172,34 +172,31 @@ jobs:
 
     - name: Login to Cloud Foundry
       run: |
-        # 首次登录（不指定 org/space）
+        # 1. 首次登录（SAP 会根据该区域的试用账号自动锁定默认唯一的 org 和 space）
         cf login -a ${{ env.CF_API }} -u "${{ secrets.EMAIL }}" -p "${{ secrets.PASSWORD }}"
         
-        # 使用 awk 提取第一个非空、非标题的有效名称
-        ORG=$(cf orgs | awk 'NR>2 && NF>0 {print $1; exit}')
-        SPACE=$(cf spaces | awk 'NR>2 && NF>0 {print $1; exit}')
+        # 2. 从当前已就绪的目标会话中，精准抓取系统锁定的 org 和 space 名称（完美规避英文表头干扰）
+        ORG=$(cf target | grep "org:" | awk '{print $2}')
+        SPACE=$(cf target | grep "space:" | awk '{print $2}')
         
-        # 防御性检查：如果提取失败则立即报错退出
+        # 3. 安全校验机制
         if [ -z "$ORG" ] || [ -z "$SPACE" ]; then
-          echo "❌ 无法获取有效的 ORG 或 SPACE，请检查账户权限或 CF CLI 输出格式"
-          echo "--- cf orgs 原始输出 ---"
-          cf orgs
-          echo "--- cf spaces 原始输出 ---"
-          cf spaces
+          echo "❌ 提取失败，当前环境未自动锁定 org 或 space，请检查账号状态或所选区域是否正确。"
+          echo "--- cf target 原始输出 ---"
+          cf target
           exit 1
         fi
         
-        echo "Selected ORG: $ORG"
-        echo "Selected SPACE: $SPACE"
+        echo "✅ 成功对接组织: $ORG"
+        echo "✅ 成功对接空间: $SPACE"
+        
+        # 4. 将准确的结果写入环境变量供后续使用
         echo "ORG=$ORG" >> $GITHUB_ENV
         echo "SPACE=$SPACE" >> $GITHUB_ENV
-        
-        # 使用 cf target 替代重复 cf login（更快、更安全）
-        cf target -o "$ORG" -s "$SPACE"
 
     - name: Deploy application
       run: |
-        # -u 25500 显式指定端口 + --health-check-invocation-timeout 180 防止启动超时
+        # 使用 -u 25500 强行向外部公开内部端口，配合 180 秒健康检查防假死超时
         if cf push ${{ env.APP_NAME }} \
            --docker-image ${{ env.DOCKER_IMAGE }} \
            -m ${{ env.MEMORY }} \
@@ -216,7 +213,7 @@ jobs:
         
     - name: Configure and verify
       run: |
-        # 设置时区，确保日志和订阅时间正确
+        # 注入亚洲/上海时区，防止生成具有时间校验的节点配置时发生混淆
         cf set-env ${{ env.APP_NAME }} TZ "Asia/Shanghai"
         cf restage ${{ env.APP_NAME }}
         
