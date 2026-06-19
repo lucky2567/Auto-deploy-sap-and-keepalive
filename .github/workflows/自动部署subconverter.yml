@@ -172,16 +172,16 @@ jobs:
 
     - name: Login to Cloud Foundry
       run: |
-        # 1. 首次登录（SAP 会根据该区域的试用账号自动锁定默认唯一的 org 和 space）
+        # 1. 首次登录
         cf login -a ${{ env.CF_API }} -u "${{ secrets.EMAIL }}" -p "${{ secrets.PASSWORD }}"
         
-        # 2. 从当前已就绪的目标会话中，精准抓取系统锁定的 org 和 space 名称（完美规避英文表头干扰）
+        # 2. 精准抓取系统锁定的 org 和 space 名称
         ORG=$(cf target | grep "org:" | awk '{print $2}')
         SPACE=$(cf target | grep "space:" | awk '{print $2}')
         
         # 3. 安全校验机制
         if [ -z "$ORG" ] || [ -z "$SPACE" ]; then
-          echo "❌ 提取失败，当前环境未自动锁定 org 或 space，请检查账号状态或所选区域是否正确。"
+          echo "❌ 提取失败，当前环境未自动锁定 org 或 space，请检查账号状态或区域。"
           echo "--- cf target 原始输出 ---"
           cf target
           exit 1
@@ -190,20 +190,18 @@ jobs:
         echo "✅ 成功对接组织: $ORG"
         echo "✅ 成功对接空间: $SPACE"
         
-        # 4. 将准确的结果写入环境变量供后续使用
         echo "ORG=$ORG" >> $GITHUB_ENV
         echo "SPACE=$SPACE" >> $GITHUB_ENV
 
     - name: Deploy application
       run: |
-        # 使用 -u 25500 强行向外部公开内部端口，配合 180 秒健康检查防假死超时
+        # 修复点：--health-check-type 改回规范的 port，超时参数修正为标准支持的 --app-start-timeout 180
         if cf push ${{ env.APP_NAME }} \
            --docker-image ${{ env.DOCKER_IMAGE }} \
            -m ${{ env.MEMORY }} \
            -k ${{ env.DISK }} \
-           -u 25500 \
            --health-check-type port \
-           --health-check-invocation-timeout 180; then
+           --app-start-timeout 180; then
           echo "✅ Deployment successful"
         else
           cf delete ${{ env.APP_NAME }} -f -r
@@ -213,7 +211,7 @@ jobs:
         
     - name: Configure and verify
       run: |
-        # 注入亚洲/上海时区，防止生成具有时间校验的节点配置时发生混淆
+        # 注入亚洲/上海时区
         cf set-env ${{ env.APP_NAME }} TZ "Asia/Shanghai"
         cf restage ${{ env.APP_NAME }}
         
