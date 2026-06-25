@@ -254,11 +254,14 @@ jobs:
         cf set-env ${{ env.APP_NAME }} SITE_BASE "${{ secrets.SITE_BASE}}"               # 站点外部访问绑定的 URL
         cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_SITE_NAME "${{ secrets.NEXT_PUBLIC_SITE_NAME || 'LunaTV' }}" # 网站名称
         cf set-env ${{ env.APP_NAME }} ANNOUNCEMENT "${{ secrets.ANNOUNCEMENT }}"        # 首页公告文本
-        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_STORAGE_TYPE "${{ secrets.NEXT_PUBLIC_STORAGE_TYPE }}" # 存储引擎类型 (如 redis、kvrocks等)
-        cf set-env ${{ env.APP_NAME }} KVROCKS_URL "${{ secrets.KVROCKS_URL }}"          # kvrocks 数据库连接串
-        cf set-env ${{ env.APP_NAME }} REDIS_URL "${{ secrets.REDIS_URL }}"              # redis 数据库连接串
-        cf set-env ${{ env.APP_NAME }} UPSTASH_URL "${{ secrets.UPSTASH_URL }}"          # upstash 兼容数据库 URL
-        cf set-env ${{ env.APP_NAME }} UPSTASH_TOKEN "${{ secrets.UPSTASH_TOKEN }}"      # upstash 连接凭证 token
+        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_STORAGE_TYPE "${{ secrets.NEXT_PUBLIC_STORAGE_TYPE }}" # 存储引擎类型
+
+        # 【已修正】完美匹配原版代码所需的环境变量名
+        cf set-env ${{ env.APP_NAME }} KVROCKS_URL "${{ secrets.KVROCKS_URL }}"          
+        cf set-env ${{ env.APP_NAME }} REDIS_URL "${{ secrets.REDIS_URL }}"              
+        cf set-env ${{ env.APP_NAME }} UPSTASH_REDIS_REST_URL "${{ secrets.UPSTASH_URL }}" # 修改为此行
+        cf set-env ${{ env.APP_NAME }} UPSTASH_REDIS_REST_TOKEN "${{ secrets.UPSTASH_TOKEN }}" # 修改为此行
+
         cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_DISABLE_YELLOW_FILTER "${{ secrets.NEXT_PUBLIC_DISABLE_YELLOW_FILTER || 'false'}}" # 是否禁用敏感过滤
         
         # 重启应用生效变量
