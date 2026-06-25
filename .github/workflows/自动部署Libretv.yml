@@ -41,6 +41,7 @@ on:
           - Azure-EU(Netherlands)
           - Azure-JP(Tokyo)
           - Azure-SG(Singapore)
+          - Azure-UK(London)  # <-- 新增了英国选项
           # SAP Neo 区域
           - Neo-UAE(Dubai)
           - Neo-KSA(Riyadh)
@@ -192,6 +193,10 @@ jobs:
           "Azure-SG(Singapore)")
             echo "CF_API=https://api.cf.ap21.hana.ondemand.com" >> $GITHUB_ENV
             echo "APP_NAME=libretv-azsg$RANDOM_STR" >> $GITHUB_ENV
+            ;;
+          "Azure-UK(London)")  # <-- 新增了英国区域的 API 映射逻辑
+            echo "CF_API=https://api.cf.uk20.hana.ondemand.com" >> $GITHUB_ENV
+            echo "APP_NAME=libretv-azuk$RANDOM_STR" >> $GITHUB_ENV
             ;;
           
           # SAP Neo 区域
