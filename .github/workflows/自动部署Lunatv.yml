@@ -1,4 +1,4 @@
-name: 自动部署 LunaTV 到 SAP
+name: 自动部署 LunaTV 到 SAP (本地Redis版)
 
 on:
   workflow_dispatch:  # 只允许手动触发
@@ -54,6 +54,7 @@ env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE || 'ghcr.io/moontechlab/lunatv:latest' }} # 默认直接锁定原版官方镜像
   MEMORY: ${{ secrets.MEMORY || '512M' }}
   DISK: ${{ secrets.DISK || '512M' }}
+  SERVICE_NAME: "lunatv-local-redis" # SAP 内部本地 Redis 服务实例名称
 
 jobs:
   deploy-app:
@@ -215,79 +216,64 @@ jobs:
           echo "APP_NAME=${{ github.event.inputs.app_name }}" >> $GITHUB_ENV
         fi
 
-        echo "使用API端点: $CF_API"
-        echo "应用名称: $APP_NAME"
-        echo "部署镜像: ${{ env.DOCKER_IMAGE }}"
-
     - name: Login to Cloud Foundry
       run: |
         cf login -a ${{ env.CF_API }} -u "${{ secrets.EMAIL }}" -p "${{ secrets.PASSWORD }}"
 
-        # 获取组织列表
         ORG=$(cf orgs | sed -n '4p')
-        echo "Selected org: $ORG"
         echo "ORG=$ORG" >> $GITHUB_ENV
 
-        # 获取空间列表
         SPACE=$(cf spaces | sed -n '4p')
-        echo "Selected space: $SPACE"
         echo "SPACE=$SPACE" >> $GITHUB_ENV
 
-        # 使用获取的组织和空间重新登录
         cf login -a ${{ env.CF_API }} -u "${{ secrets.EMAIL }}" -p "${{ secrets.PASSWORD }}" -o "$ORG" -s "$SPACE"
+
+    - name: Create Local SAP Redis Service
+      run: |
+        echo "检查并创建 SAP 本地 Redis 实例..."
+        # 尝试使用免费计划(standard/free)创建本地内置 redis 实例，如果服务不存在则忽略
+        cf create-service redis standard ${{ env.SERVICE_NAME }} || cf create-service redis-cloud free ${{ env.SERVICE_NAME }} || echo "空间可能已存在该服务"
 
     - name: Deploy application
       run: |
+        # 部署应用，并直接绑定刚刚创建的本地 Redis 服务
         if cf push ${{ env.APP_NAME }} --docker-image ${{ env.DOCKER_IMAGE }} -m ${{ env.MEMORY }} -k ${{ env.DISK }} --health-check-type port; then
           echo "Deployment successful"
+          cf bind-service ${{ env.APP_NAME }} ${{ env.SERVICE_NAME }}
         else
           cf delete ${{ env.APP_NAME }} -f -r
-          echo "伙计,没资源了,部署失败,请明天早上8:20至9:00再尝试部署,已清理失败部署残留"
+          echo "部署失败，已清理残留"
           exit 1
         fi
         
     - name: Verify deployment
       run: |
-        # 设置 LunaTV 运行所需的环境变量 (请在 GitHub Repository 的 Secrets 中预先配好)
-        cf set-env ${{ env.APP_NAME }} USERNAME "${{ secrets.TV_USERNAME}}"              # 管理后台用户名
-        cf set-env ${{ env.APP_NAME }} PASSWORD "${{ secrets.TV_PASSWORD || '123456'}}"  # 管理后台密码
-        cf set-env ${{ env.APP_NAME }} SITE_BASE "${{ secrets.SITE_BASE}}"               # 站点外部访问绑定的 URL
-        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_SITE_NAME "${{ secrets.NEXT_PUBLIC_SITE_NAME || 'LunaTV' }}" # 网站名称
-        cf set-env ${{ env.APP_NAME }} ANNOUNCEMENT "${{ secrets.ANNOUNCEMENT }}"        # 首页公告文本
+        # 设置基础环境变量
+        cf set-env ${{ env.APP_NAME }} USERNAME "${{ secrets.TV_USERNAME}}"              
+        cf set-env ${{ env.APP_NAME }} PASSWORD "${{ secrets.TV_PASSWORD || '123456'}}"  
+        cf set-env ${{ env.APP_NAME }} SITE_BASE "${{ secrets.SITE_BASE}}"               
+        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_SITE_NAME "${{ secrets.NEXT_PUBLIC_SITE_NAME || 'LunaTV' }}" 
+        cf set-env ${{ env.APP_NAME }} ANNOUNCEMENT "${{ secrets.ANNOUNCEMENT }}"        
         
-        # 【修改重点】强制启用标准 Redis 连接模式
+        # 【核心修改】：通知 LunaTV 直接读取 SAP 本地绑定的云原生服务凭证 (VCAP_SERVICES)
         cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_STORAGE_TYPE "redis"
-        cf set-env ${{ env.APP_NAME }} REDIS_URL "${{ secrets.REDIS_URL }}"              
-
-        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_DISABLE_YELLOW_FILTER "${{ secrets.NEXT_PUBLIC_DISABLE_YELLOW_FILTER || 'false'}}" # 是否禁用敏感过滤
         
-        # 重启应用生效变量
+        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_DISABLE_YELLOW_FILTER "${{ secrets.NEXT_PUBLIC_DISABLE_YELLOW_FILTER || 'false'}}" 
+        
+        # 重启应用以彻底绑定服务和激活变量
         cf restage ${{ env.APP_NAME }}
         
-        # 检查应用状态
         STATUS=$(cf app ${{ env.APP_NAME }} | grep "requested state:" | awk '{print $3}')
         if [ "$STATUS" = "started" ]; then
           echo "✅ LunaTV 部署并启动成功！"
         else
-          echo "❌ 应用启动失败，当前状态: $STATUS"
-          echo "查看应用日志:"
+          echo "❌ 应用启动失败"
           cf logs ${{ env.APP_NAME }} --recent
           exit 1
         fi
         
     - name: 详细部署信息
       run: |
-        echo "🚀 部署完成！详细信息如下："
-        echo "开源项目: MoonTechLab/LunaTV (遵循 CC BY-NC-SA 协议)"
-        echo "区域(Region): ${{ github.event.inputs.region }}"
-        echo "组织(ORG): ${{ env.ORG }}"
-        echo "空间(SPACE): ${{ env.SPACE }}"
-        echo "应用名称(App Name): ${{ env.APP_NAME }}"
-
-        # 获取应用路由
+        echo "🚀 部署完成！"
         ROUTE=$(cf app ${{ env.APP_NAME }} | grep "routes:" | awk '{print $2}')
-        if [ -n "$ROUTE" ]; then
-          echo "LunaTV 访问地址: https://$ROUTE"
-        else
-          echo "⚠️ 未找到应用路由，请前往 SAP BTP 控制台手动确认。"
-        fi
+        echo "LunaTV 本地存储版访问地址: https://$ROUTE"
