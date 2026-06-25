@@ -51,6 +51,7 @@ on:
           - Azure-EU(Netherlands)
           - Azure-JP(Tokyo)
           - Azure-SG(Singapore)
+          - Azure-UK(London)  # <-- 新增了英国选项
           # SAP Neo 区域
           - Neo-UAE(Dubai)
           - Neo-KSA(Riyadh)
@@ -203,6 +204,10 @@ jobs:
             echo "CF_API=https://api.cf.ap21.hana.ondemand.com" >> $GITHUB_ENV
             echo "APP_NAME=moontv-azsg$RANDOM_STR" >> $GITHUB_ENV
             ;;
+          "Azure-UK(London)")  # <-- 新增了英国区域的 API 映射逻辑
+            echo "CF_API=https://api.cf.uk20.hana.ondemand.com" >> $GITHUB_ENV
+            echo "APP_NAME=moontv-azuk$RANDOM_STR" >> $GITHUB_ENV
+            ;;
           
           # SAP Neo 区域
           "Neo-UAE(Dubai)")
@@ -215,7 +220,7 @@ jobs:
             ;;
         esac
         
-        # 如果用户提供了应用名称，则使用用户提供的
+        # 如果用户提供了应用名称，则使用用户提供了
         if [ -n "${{ github.event.inputs.app_name }}" ]; then
           echo "APP_NAME=${{ github.event.inputs.app_name }}" >> $GITHUB_ENV
         fi
