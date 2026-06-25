@@ -1,18 +1,8 @@
-name: 自动部署moontv/lunatv到SAP
+name: 自动部署 LunaTV 到 SAP
 
 on:
   workflow_dispatch:  # 只允许手动触发
     inputs:
-      type:
-        description: '选择部署的版本(Moontv自带源,Lunatv和KatelyaTV需手动配置源)'
-        required: true
-        default: 'Moontv'
-        type: choice
-        options:
-          - Lunatv
-          - Moontv
-          - DecoTV
-          - KatelyaTV
       region:
         description: '选择部署区域'
         required: true
@@ -51,7 +41,7 @@ on:
           - Azure-EU(Netherlands)
           - Azure-JP(Tokyo)
           - Azure-SG(Singapore)
-          - Azure-UK(London)  # <-- 英国伦敦节点
+          - Azure-UK(London)  # 英国伦敦节点
           # SAP Neo 区域
           - Neo-UAE(Dubai)
           - Neo-KSA(Riyadh)
@@ -61,7 +51,7 @@ on:
         default: ''
 
 env:
-  DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE || 'ghcr.io/eooce/moontv:latest' }}
+  DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE || 'ghcr.io/moontechlab/lunatv:latest' }} # 默认直接锁定原版官方镜像
   MEMORY: ${{ secrets.MEMORY || '512M' }}
   DISK: ${{ secrets.DISK || '512M' }}
 
@@ -89,134 +79,134 @@ jobs:
           # 免费区域
           "SG(free)")
             echo "CF_API=https://api.cf.ap21.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-freesg$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-freesg$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "US(free)")
             echo "CF_API=https://api.cf.us10-001.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-freeus$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-freeus$RANDOM_STR" >> $GITHUB_ENV
             ;;
           # AWS 区域
           "AWS-AU(Sydney)")
             echo "CF_API=https://api.cf.ap10.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awsau$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awsau$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-BR(São Paulo)")
             echo "CF_API=https://api.cf.br10.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awsbr$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awsbr$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-KR(Seoul)")
             echo "CF_API=https://api.cf.ap12.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awskr$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awskr$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-CA(Montreal)")
             echo "CF_API=https://api.cf.ca10.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awsca$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awsca$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-US(VA)")
             echo "CF_API=https://api.cf.us10-001.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awsusva$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awsusva$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-US(OR)")
             echo "CF_API=https://api.cf.us11.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awsusor$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awsusor$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-EU(Frankfurt)")
             echo "CF_API=https://api.cf.eu10-005.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-waseu$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-waseu$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-JP(Tokyo)")
             echo "CF_API=https://api.cf.jp10.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awsjp$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awsjp$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "AWS-SG(Singapore)")
             echo "CF_API=https://api.cf.ap11.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-awssg$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-awssg$RANDOM_STR" >> $GITHUB_ENV
             ;;
           
           # GCP 区域
           "GCP-AU(Sydney)")
             echo "CF_API=https://api.cf.ap30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpau$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpau$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-BR(São Paulo)")
             echo "CF_API=https://api.cf.br30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpbr$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpbr$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-US(IA)")
             echo "CF_API=https://api.cf.us30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpus$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpus$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-EU(Frankfurt)")
             echo "CF_API=https://api.cf.eu30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpeu$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpeu$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-JP(Osaka)")
             echo "CF_API=https://api.cf.jp30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpjpo$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpjpo$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-JP(Tokyo)")
             echo "CF_API=https://api.cf.jp31.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpjpt$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpjpt$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-IL(Tel Aviv)")
             echo "CF_API=https://api.cf.il30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpil$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpil$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-IN(Mumbai)")
             echo "CF_API=https://api.cf.in30.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpin$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpin$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "GCP-KSA(Dammam)")
             echo "CF_API=https://api.cf.sa31.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-gcpsa$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-gcpsa$RANDOM_STR" >> $GITHUB_ENV
             ;;
           
           # Azure 区域
           "Azure-AU(Sydney)")
             echo "CF_API=https://api.cf.ap20.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azau$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azau$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-BR(São Paulo)")
             echo "CF_API=https://api.cf.br20.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azbr$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azbr$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-CA(Montreal)")
             echo "CF_API=https://api.cf.ca20.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azca$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azca$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-US(VA)")
             echo "CF_API=https://api.cf.us21.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azva$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azva$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-US(WA)")
             echo "CF_API=https://api.cf.us20.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azwa$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azwa$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-EU(Netherlands)")
             echo "CF_API=https://api.cf.eu20-001.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azeu$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azeu$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-JP(Tokyo)")
             echo "CF_API=https://api.cf.jp20.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azjp$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azjp$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Azure-SG(Singapore)")
             echo "CF_API=https://api.cf.ap21.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azsg$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azsg$RANDOM_STR" >> $GITHUB_ENV
             ;;
-          "Azure-UK(London)")  # <-- 英国区域 API
+          "Azure-UK(London)")
             echo "CF_API=https://api.cf.uk20.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-azuk$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-azuk$RANDOM_STR" >> $GITHUB_ENV
             ;;
           
           # SAP Neo 区域
           "Neo-UAE(Dubai)")
             echo "CF_API=https://api.cf.neo-ae1.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-neouae$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-neouae$RANDOM_STR" >> $GITHUB_ENV
             ;;
           "Neo-KSA(Riyadh)")
             echo "CF_API=https://api.cf.neo-sa1.hana.ondemand.com" >> $GITHUB_ENV
-            echo "APP_NAME=moontv-neoksa$RANDOM_STR" >> $GITHUB_ENV
+            echo "APP_NAME=lunatv-neoksa$RANDOM_STR" >> $GITHUB_ENV
             ;;
         esac
         
@@ -225,23 +215,9 @@ jobs:
           echo "APP_NAME=${{ github.event.inputs.app_name }}" >> $GITHUB_ENV
         fi
 
-        # 如果自定义了docker镜像变量则使用定义的，否则按照选择的
-        if [[ -n "${{ secrets.DOCKER_IMAGE }}" ]]; then
-          echo "DOCKER_IMAGE=${{ secrets.DOCKER_IMAGE }}" >> $GITHUB_ENV
-        else
-          if [ "${{ github.event.inputs.type }}" = "Lunatv" ]; then
-            echo "DOCKER_IMAGE=ghcr.io/moontechlab/lunatv:latest" >> $GITHUB_ENV
-          elif [ "${{ github.event.inputs.type }}" = "KatelyaTV" ]; then
-            echo "DOCKER_IMAGE=ghcr.io/katelya77/katelyatv:latest" >> $GITHUB_ENV
-          elif [ "${{ github.event.inputs.type }}" = "DecoTV" ]; then
-            echo "DOCKER_IMAGE=ghcr.io/decohererk/decotv:latest" >> $GITHUB_ENV
-          else 
-            echo "DOCKER_IMAGE=ghcr.io/eooce/moontv:latest" >> $GITHUB_ENV
-          fi
-        fi
         echo "使用API端点: $CF_API"
         echo "应用名称: $APP_NAME"
-        echo "部署类型: ${{ env.DOCKER_IMAGE }}"
+        echo "部署镜像: ${{ env.DOCKER_IMAGE }}"
 
     - name: Login to Cloud Foundry
       run: |
@@ -272,25 +248,26 @@ jobs:
         
     - name: Verify deployment
       run: |
-        # 设置环境变量
-        cf set-env ${{ env.APP_NAME }} USERNAME "${{ secrets.TV_USERNAME}}"              # 用户名
-        cf set-env ${{ env.APP_NAME }} PASSWORD "${{ secrets.TV_PASSWORD || '123456'}}"  # 密码
-        cf set-env ${{ env.APP_NAME }} SITE_BASE "${{ secrets.SITE_BASE}}"               # 站点 url
-        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_SITE_NAME "${{ secrets.NEXT_PUBLIC_SITE_NAME }}" # 站点名称
-        cf set-env ${{ env.APP_NAME }} ANNOUNCEMENT "${{ secrets.ANNOUNCEMENT }}"        # 站点公告
-        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_STORAGE_TYPE "${{ secrets.NEXT_PUBLIC_STORAGE_TYPE }}" # 存储方式：redis、kvrocks、upstash d1
-        cf set-env ${{ env.APP_NAME }} KVROCKS_URL "${{ secrets.KVROCKS_URL }}"          # kvrocks 连接 url
-        cf set-env ${{ env.APP_NAME }} REDIS_URL "${{ secrets.REDIS_URL }}"              # redis 连接 url
-        cf set-env ${{ env.APP_NAME }} UPSTASH_URL "${{ secrets.UPSTASH_URL }}"          # upstash redis 连接 url
-        cf set-env ${{ env.APP_NAME }} UPSTASH_TOKEN "${{ secrets.UPSTASH_TOKEN }}"      # upstash redis 连接 token
-        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_DISABLE_YELLOW_FILTER "${{ secrets.NEXT_PUBLIC_DISABLE_YELLOW_FILTER || 'false'}}" # 是否开启18+,默认开启
+        # 设置 LunaTV 运行所需的环境变量 (请在 GitHub Repository 的 Secrets 中预先配好)
+        cf set-env ${{ env.APP_NAME }} USERNAME "${{ secrets.TV_USERNAME}}"              # 管理后台用户名
+        cf set-env ${{ env.APP_NAME }} PASSWORD "${{ secrets.TV_PASSWORD || '123456'}}"  # 管理后台密码
+        cf set-env ${{ env.APP_NAME }} SITE_BASE "${{ secrets.SITE_BASE}}"               # 站点外部访问绑定的 URL
+        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_SITE_NAME "${{ secrets.NEXT_PUBLIC_SITE_NAME || 'LunaTV' }}" # 网站名称
+        cf set-env ${{ env.APP_NAME }} ANNOUNCEMENT "${{ secrets.ANNOUNCEMENT }}"        # 首页公告文本
+        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_STORAGE_TYPE "${{ secrets.NEXT_PUBLIC_STORAGE_TYPE }}" # 存储引擎类型 (如 redis、kvrocks等)
+        cf set-env ${{ env.APP_NAME }} KVROCKS_URL "${{ secrets.KVROCKS_URL }}"          # kvrocks 数据库连接串
+        cf set-env ${{ env.APP_NAME }} REDIS_URL "${{ secrets.REDIS_URL }}"              # redis 数据库连接串
+        cf set-env ${{ env.APP_NAME }} UPSTASH_URL "${{ secrets.UPSTASH_URL }}"          # upstash 兼容数据库 URL
+        cf set-env ${{ env.APP_NAME }} UPSTASH_TOKEN "${{ secrets.UPSTASH_TOKEN }}"      # upstash 连接凭证 token
+        cf set-env ${{ env.APP_NAME }} NEXT_PUBLIC_DISABLE_YELLOW_FILTER "${{ secrets.NEXT_PUBLIC_DISABLE_YELLOW_FILTER || 'false'}}" # 是否禁用敏感过滤
         
-        # 重启应用
+        # 重启应用生效变量
         cf restage ${{ env.APP_NAME }}
+        
         # 检查应用状态
         STATUS=$(cf app ${{ env.APP_NAME }} | grep "requested state:" | awk '{print $3}')
         if [ "$STATUS" = "started" ]; then
-          echo "✅ Moontv启动成功"
+          echo "✅ LunaTV 部署并启动成功！"
         else
           echo "❌ 应用启动失败，当前状态: $STATUS"
           echo "查看应用日志:"
@@ -301,6 +278,7 @@ jobs:
     - name: 详细部署信息
       run: |
         echo "🚀 部署完成！详细信息如下："
+        echo "开源项目: MoonTechLab/LunaTV (遵循 CC BY-NC-SA 协议)"
         echo "区域(Region): ${{ github.event.inputs.region }}"
         echo "组织(ORG): ${{ env.ORG }}"
         echo "空间(SPACE): ${{ env.SPACE }}"
@@ -309,7 +287,7 @@ jobs:
         # 获取应用路由
         ROUTE=$(cf app ${{ env.APP_NAME }} | grep "routes:" | awk '{print $2}')
         if [ -n "$ROUTE" ]; then
-          echo "Moontv—URL: https://$ROUTE"
+          echo "LunaTV 访问地址: https://$ROUTE"
         else
-          echo "⚠️ 未找到应用路由，请检查部署状态。"
+          echo "⚠️ 未找到应用路由，请前往 SAP BTP 控制台手动确认。"
         fi
